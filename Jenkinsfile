@@ -1,55 +1,62 @@
 pipeline {
+
     agent any
 
     stages {
 
-        stage('Install Dependencies') {
+        stage('Deploy to EC2') {
             steps {
+
                 sh '''
+                    ssh -i /var/lib/jenkins/.ssh/ec2-key.pem \
+                    -o StrictHostKeyChecking=no \
+                    ubuntu@13.60.36.216 << 'EOF'
+
+                    set -e
+
                     cd /home/ubuntu/cicdpipeline
 
-                    /home/ubuntu/cicdpipeline/venv/bin/python -m pip install -r requirements.txt
-                '''
-            }
-        }
+                    echo "Pulling latest master code..."
 
-        stage('Migrate') {
-            steps {
-                sh '''
-                    cd /home/ubuntu/cicdpipeline
+                    git fetch origin
+                    git reset --hard origin/master
 
-                    /home/ubuntu/cicdpipeline/venv/bin/python manage.py migrate
-                '''
-            }
-        }
+                    echo "Activating virtual environment..."
 
-        stage('Collect Static') {
-            steps {
-                sh '''
-                    cd /home/ubuntu/cicdpipeline
+                    source venv/bin/activate
 
-                    /home/ubuntu/cicdpipeline/venv/bin/python manage.py collectstatic --noinput
-                '''
-            }
-        }
+                    echo "Installing dependencies..."
 
-        stage('Restart Gunicorn') {
-            steps {
-                sh '''
+                    pip install -r requirements.txt
+
+                    echo "Running migrations..."
+
+                    python manage.py migrate
+
+                    echo "Collecting static files..."
+
+                    python manage.py collectstatic --noinput
+
+                    echo "Restarting Gunicorn..."
+
                     sudo systemctl restart gunicorn
-                    sudo systemctl status gunicorn --no-pager
+
+                    echo "Deployment completed successfully!"
+
+                    EOF
                 '''
             }
         }
     }
 
     post {
+
         success {
-            echo 'Django Deployment Successful!'
+            echo 'EC2 Deployment Successful!'
         }
 
         failure {
-            echo 'Django Deployment Failed!'
+            echo 'EC2 Deployment Failed!'
         }
     }
 }
