@@ -6,7 +6,6 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 sshagent(['ec2-ssh']) {
-
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.60.36.216 "
                             cd /home/ubuntu/djcicd &&
@@ -23,11 +22,10 @@ pipeline {
         stage('Restart Django') {
             steps {
                 sshagent(['ec2-ssh']) {
-
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.60.36.216 "
-                            cd /home/ubuntu/djcicd &&
-                            pkill -f 'manage.py runserver 0.0.0.0:8000' || true &&
+                            pkill -f 'manage.py runserver 0.0.0.0:8000' || true
+                            cd /home/ubuntu/djcicd
                             nohup /home/ubuntu/djcicd/venv/bin/python manage.py runserver 0.0.0.0:8000 > /home/ubuntu/djcicd/django.log 2>&1 &
                         "
                     '''
