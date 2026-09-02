@@ -14,7 +14,7 @@ pipeline {
 
                     set -e
 
-                    cd /home/ubuntu/cicdpipeline
+                    cd /home/ubuntu/djcicd
 
                     echo "Pulling latest master code..."
 
