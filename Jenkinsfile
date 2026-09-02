@@ -3,42 +3,35 @@ pipeline {
 
     stages {
 
-        stage('Install Dependencies') {
+        stage('Deploy to EC2') {
             steps {
-                sh '''
-                    cd /home/ubuntu/cicdpipeline
+                sshagent(['ec2-ssh']) {
 
-                    /home/ubuntu/cicdpipeline/venv/bin/python -m pip install -r requirements.txt
-                '''
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.60.36.216 "
+                            cd /home/ubuntu/djcicd &&
+                            git checkout main &&
+                            git pull origin main &&
+                            /home/ubuntu/djcicd/venv/bin/pip install -r requirements.txt &&
+                            /home/ubuntu/djcicd/venv/bin/python manage.py migrate
+                        "
+                    '''
+                }
             }
         }
 
-        stage('Migrate') {
+        stage('Restart Django') {
             steps {
-                sh '''
-                    cd /home/ubuntu/cicdpipeline
+                sshagent(['ec2-ssh']) {
 
-                    /home/ubuntu/cicdpipeline/venv/bin/python manage.py migrate
-                '''
-            }
-        }
-
-        stage('Collect Static') {
-            steps {
-                sh '''
-                    cd /home/ubuntu/cicdpipeline
-
-                    /home/ubuntu/cicdpipeline/venv/bin/python manage.py collectstatic --noinput
-                '''
-            }
-        }
-
-        stage('Restart Gunicorn') {
-            steps {
-                sh '''
-                    sudo systemctl restart gunicorn
-                    sudo systemctl status gunicorn --no-pager
-                '''
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.60.36.216 "
+                            cd /home/ubuntu/djcicd &&
+                            pkill -f 'manage.py runserver 0.0.0.0:8000' || true &&
+                            nohup /home/ubuntu/djcicd/venv/bin/python manage.py runserver 0.0.0.0:8000 > /home/ubuntu/djcicd/django.log 2>&1 &
+                        "
+                    '''
+                }
             }
         }
     }
