@@ -9,8 +9,8 @@ pipeline {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.60.36.216 "
                             cd /home/ubuntu/djcicd &&
-                            git checkout main &&
-                            git pull origin main &&
+                            git checkout master &&
+                            git pull origin master &&
                             /home/ubuntu/djcicd/venv/bin/pip install -r requirements.txt &&
                             /home/ubuntu/djcicd/venv/bin/python manage.py migrate
                         "
@@ -24,8 +24,8 @@ pipeline {
                 sshagent(['ec2-ssh']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@13.60.36.216 "
+                            cd /home/ubuntu/djcicd &&
                             pkill -f 'manage.py runserver 0.0.0.0:8000' || true
-                            cd /home/ubuntu/djcicd
                             nohup /home/ubuntu/djcicd/venv/bin/python manage.py runserver 0.0.0.0:8000 > /home/ubuntu/djcicd/django.log 2>&1 &
                         "
                     '''
